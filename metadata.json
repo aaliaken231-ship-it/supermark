@@ -1,0 +1,5 @@
+{
+  "name": "SuperGère - Système de Gestion de Supermarché",
+  "description": "Application complète de gestion de supermarché avec mode hors ligne, gestion de stock, ventes, facturation et licences.",
+  "requestFramePermissions": []
+}
