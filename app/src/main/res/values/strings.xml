@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SuperMark</string>
+
+    <!-- Login -->
+    <string name="login_title">Bienvenue à SuperMark</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Mot de passe</string>
+    <string name="login_button">Connexion</string>
+    <string name="login_register">Créer un compte</string>
+    <string name="login_forgot_password">Mot de passe oublié?</string>
+
+    <!-- Register -->
+    <string name="register_title">Créer un compte</string>
+    <string name="register_name">Nom complet</string>
+    <string name="register_email">Email</string>
+    <string name="register_password">Mot de passe</string>
+    <string name="register_confirm_password">Confirmer le mot de passe</string>
+    <string name="register_button">S\'inscrire</string>
+    <string name="register_already_account">Déjà un compte? Se connecter</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Tableau de bord</string>
+    <string name="dashboard_sales">Ventes du jour</string>
+    <string name="dashboard_products">Produits</string>
+    <string name="dashboard_customers">Clients</string>
+    <string name="dashboard_inventory">Stock</string>
+
+    <!-- Products -->
+    <string name="products_title">Gestion des produits</string>
+    <string name="product_add">Ajouter un produit</string>
+    <string name="product_name">Nom du produit</string>
+    <string name="product_price">Prix</string>
+    <string name="product_quantity">Quantité</string>
+    <string name="product_delete">Supprimer</string>
+    <string name="product_edit">Modifier</string>
+
+    <!-- Sales -->
+    <string name="sales_title">Ventes</string>
+    <string name="sales_add">Nouvelle vente</string>
+    <string name="sales_invoice">Facture</string>
+    <string name="sales_total">Total</string>
+
+    <!-- Customers -->
+    <string name="customers_title">Clients</string>
+    <string name="customer_add">Ajouter un client</string>
+    <string name="customer_name">Nom</string>
+    <string name="customer_phone">Téléphone</string>
+    <string name="customer_email">Email</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_profile">Profil</string>
+    <string name="settings_license">Licence</string>
+    <string name="settings_logout">Déconnexion</string>
+
+    <!-- Common -->
+    <string name="error">Erreur</string>
+    <string name="success">Succès</string>
+    <string name="cancel">Annuler</string>
+    <string name="save">Enregistrer</string>
+    <string name="delete">Supprimer</string>
+    <string name="loading">Chargement...</string>
+</resources>
