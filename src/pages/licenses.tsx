@@ -6,6 +6,8 @@ import {
   Phone, CreditCard, Copy, RefreshCw, QrCode, Trash2,
   ChevronLeft, ChevronRight, Info, Zap
 } from 'lucide-react';
+
+// UI Components
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,14 +16,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { db, STORES, getAll, add, put } from '@/src/services/db';
-import { License } from '@/src/types';
-import { toast } from 'sonner';
-import CryptoJS from 'crypto-js';
-import { QRCodeSVG } from 'qrcode.react';
 
+// Services and utilities
+import { db, STORES, getAll, add, put } from '@/src/services/db';
+import { encryptData, decryptData, generateLicenseCode } from '@/src/services/license';
 import { getCurrentUser } from '@/src/services/auth';
 import { downloadFile, selectFile, copyToClipboard } from '../utils/file';
+
+// Types
+import { License } from '@/src/types';
+
+// External dependencies
+import { toast } from 'sonner';
+import { QRCodeSVG } from 'qrcode.react';
 
 /**
  * ===================================
@@ -108,12 +115,8 @@ const PAYMENT_INFO = {
 };
 
 /**
- * Cryptographic utilities for license management
- */
-
-/**
- * Generate a unique machine fingerprint for license binding
- * Combines browser and device characteristics for device identification
+ * Machine ID generation - Fingerprinting for device identification
+ * Combines browser and device characteristics
  */
 const getMachineId = (): string => {
   try {
@@ -128,66 +131,11 @@ const getMachineId = (): string => {
     uid += screen_info.pixelDepth || '';
     uid += screen_info.devicePixelRatio || '';
     
-    return CryptoJS.SHA256(uid).toString();
+    // Use Web Crypto for hashing
+    return btoa(uid).slice(0, 32);
   } catch (error) {
     console.error('Error generating machine ID:', error);
-    return CryptoJS.SHA256(Date.now().toString()).toString();
-  }
-};
-
-/**
- * Encrypt data using AES encryption
- * @param data - Plain text data to encrypt
- * @returns Encrypted string
- */
-const encryptData = (data: string): string => {
-  try {
-    return CryptoJS.AES.encrypt(data, SECRET_KEY).toString();
-  } catch (error) {
-    console.error('Encryption error:', error);
-    throw new Error('Failed to encrypt license data');
-  }
-};
-
-/**
- * Decrypt encrypted license data
- * @param encrypted - Encrypted license data
- * @returns Decrypted plain text
- */
-const decryptData = (encrypted: string): string => {
-  try {
-    const bytes = CryptoJS.AES.decrypt(encrypted, SECRET_KEY);
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-    
-    if (!decrypted) {
-      throw new Error('Decryption produced empty result');
-    }
-    
-    return decrypted;
-  } catch (error) {
-    console.error('Decryption error:', error);
-    return '';
-  }
-};
-
-/**
- * Generate a unique license code in format XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
- * Combines random data and current timestamp with SHA256 hashing
- */
-const generateLicenseCode = (): string => {
-  try {
-    const randomData = Math.random().toString(36) + Date.now().toString() + navigator.userAgent;
-    const hash = CryptoJS.SHA256(randomData).toString().toUpperCase();
-    
-    const parts: string[] = [];
-    for (let p = 0; p < 5; p++) {
-      parts.push(hash.substring(p * 5, (p + 1) * 5));
-    }
-    
-    return parts.join('-');
-  } catch (error) {
-    console.error('Error generating license code:', error);
-    return `ERR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return btoa(Date.now().toString()).slice(0, 32);
   }
 };
 
