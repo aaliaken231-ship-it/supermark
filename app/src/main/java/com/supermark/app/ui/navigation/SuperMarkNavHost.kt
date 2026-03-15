@@ -16,7 +16,9 @@ import com.supermark.app.ui.screens.products.ProductsScreen
 import com.supermark.app.ui.screens.sales.SalesScreen
 import com.supermark.app.ui.screens.customers.CustomersScreen
 import com.supermark.app.ui.screens.settings.SettingsScreen
+import com.supermark.app.ui.screens.license.LicenseScreen
 import com.supermark.app.viewmodel.AuthViewModel
+import com.supermark.app.viewmodel.LicenseViewModel
 
 @Composable
 fun SuperMarkNavHost() {
@@ -88,6 +90,15 @@ fun SuperMarkNavHost() {
                 authViewModel = authViewModel
             )
         }
+
+        composable(Screen.License.route) {
+            val licenseViewModel: LicenseViewModel = hiltViewModel()
+            LicenseScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                licenseViewModel = licenseViewModel
+            )
+        }
     }
 }
 
@@ -99,4 +110,5 @@ sealed class Screen(val route: String) {
     object Sales : Screen("sales")
     object Customers : Screen("customers")
     object Settings : Screen("settings")
+    object License : Screen("license")
 }

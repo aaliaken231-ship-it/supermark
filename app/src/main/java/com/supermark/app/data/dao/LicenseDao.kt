@@ -27,11 +27,20 @@ interface LicenseDao {
     @Query("SELECT * FROM licenses WHERE userId = :userId")
     suspend fun getLicenseByUserId(userId: String): License?
 
+    @Query("SELECT * FROM licenses WHERE userId = :userId AND status = 'active' LIMIT 1")
+    suspend fun getActiveLicenseForUser(userId: String): License?
+
+    @Query("SELECT * FROM licenses WHERE `key` = :key LIMIT 1")
+    suspend fun getLicenseByKey(key: String): License?
+
     @Query("SELECT * FROM licenses")
     fun getAllLicenses(): Flow<List<License>>
 
     @Query("SELECT * FROM licenses WHERE status = 'active'")
     fun getActiveLicenses(): Flow<List<License>>
+
+    @Query("SELECT * FROM licenses WHERE status = 'active' AND expiresAt > :currentTime")
+    suspend fun getAllActiveLicenses(currentTime: Long = System.currentTimeMillis()): List<License>
 
     @Query("SELECT COUNT(*) FROM licenses")
     suspend fun getLicenseCount(): Int

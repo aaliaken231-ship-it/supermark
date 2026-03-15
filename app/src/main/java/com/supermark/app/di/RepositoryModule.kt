@@ -9,6 +9,7 @@ import com.supermark.app.data.dao.TransactionDao
 import com.supermark.app.data.dao.UserDao
 import com.supermark.app.data.repository.CustomerRepository
 import com.supermark.app.data.repository.InventoryRepository
+import com.supermark.app.data.repository.LicenseRepository
 import com.supermark.app.data.repository.ProductRepository
 import com.supermark.app.data.repository.SaleRepository
 import com.supermark.app.data.repository.TransactionRepository
@@ -57,4 +58,9 @@ object RepositoryModule {
         inventoryLogDao: InventoryLogDao,
         productDao: ProductDao
     ): InventoryRepository = InventoryRepository(inventoryLogDao, productDao)
+
+    @Singleton
+    @Provides
+    fun provideLicenseRepository(licenseDao: LicenseDao): LicenseRepository =
+        LicenseRepository(licenseDao)
 }

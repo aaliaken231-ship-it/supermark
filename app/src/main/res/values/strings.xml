@@ -54,6 +54,29 @@
     <string name="settings_license">Licence</string>
     <string name="settings_logout">Déconnexion</string>
 
+    <!-- License Management -->
+    <string name="license_title">Gestion des Licences</string>
+    <string name="license_active">Licence Active</string>
+    <string name="license_expired">Licence Expirée</string>
+    <string name="license_no_license">Aucune Licence Active</string>
+    <string name="license_days_remaining">jours restants</string>
+    <string name="license_details">Détails de la Licence</string>
+    <string name="license_id">ID Licence</string>
+    <string name="license_key">Clé Licence</string>
+    <string name="license_plan">Plan</string>
+    <string name="license_status">Statut</string>
+    <string name="license_max_users">Utilisateurs Max</string>
+    <string name="license_max_products">Produits Max</string>
+    <string name="license_max_sales">Ventes/Mois Max</string>
+    <string name="license_expiration_date">Date Expiration</string>
+    <string name="license_renew">Renouveler</string>
+    <string name="license_download">Télécharger</string>
+    <string name="license_create_trial">Créer Licence d\'Essai 30j</string>
+    <string name="license_no_license_description">Activez une licence pour accéder à tous les services</string>
+    <string name="license_trial">TRIAL</string>
+    <string name="license_professional">PROFESSIONAL</string>
+    <string name="license_enterprise">ENTERPRISE</string>
+
     <!-- Common -->
     <string name="error">Erreur</string>
     <string name="success">Succès</string>
@@ -61,4 +84,5 @@
     <string name="save">Enregistrer</string>
     <string name="delete">Supprimer</string>
     <string name="loading">Chargement...</string>
+    <string name="retry">Réessayer</string>
 </resources>

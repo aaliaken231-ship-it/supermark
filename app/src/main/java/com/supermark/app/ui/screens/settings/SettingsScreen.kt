@@ -112,7 +112,7 @@ fun SettingsScreen(
                 SettingsSection(
                     title = stringResource(R.string.settings_license),
                     icon = Icons.Default.Settings,
-                    onClick = { /* TODO: Show license info */ }
+                    onClick = { navController.navigate("license") }
                 )
             }
 
