@@ -133,22 +133,8 @@ const getMachineId = (): string => {
   }
 };
 
-// Machine ID generation (Fingerprinting)
-const getMachineId = (): string => {
-  const navigator_info = window.navigator;
-  const screen_info = window.screen;
-  let uid = navigator_info.mimeTypes.length.toString();
-  uid += navigator_info.userAgent.replace(/\D+/g, '');
-  uid += navigator_info.plugins.length;
-  uid += screen_info.height || '';
-  uid += screen_info.width || '';
-  uid += screen_info.pixelDepth || '';
-  return CryptoJS.SHA256(uid).toString();
-};
-
-// Encryption/Decryption using AES
 // Crypto functions are imported from @/src/services/license
-// encryptData, decryptData, generateLicenseCode are re-exported above
+// encryptData, decryptData, generateLicenseCode are available above
 
 /**
  * License Countdown Component
