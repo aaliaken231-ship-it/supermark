@@ -4,8 +4,10 @@ import {
   ArrowLeft, Key, Plus, FileCheck, Shield, CheckCircle, 
   AlertCircle, Download, Upload, Lock, Clock, Timer, 
   Phone, CreditCard, Copy, RefreshCw, QrCode, Trash2,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Info, Zap
 } from 'lucide-react';
+
+// UI Components
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,55 +16,121 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Services and utilities
 import { db, STORES, getAll, add, put } from '@/src/services/db';
+import { encryptData, decryptData, generateLicenseCode } from '@/src/services/license';
+import { getCurrentUser } from '@/src/services/auth';
+import { downloadFile, selectFile, copyToClipboard } from '../utils/file';
+
+// Types
 import { License } from '@/src/types';
+
+// External dependencies
 import { toast } from 'sonner';
-import CryptoJS from 'crypto-js';
 import { QRCodeSVG } from 'qrcode.react';
 
-// Secret key for encryption (should ideally be more complex and hidden, but for now better than Base64)
-const SECRET_KEY = 'supermarket-license-secret-key-2026';
+/**
+ * License Management Page
+ * Secure encryption key - In production, should use environment variables
+ */
+const SECRET_KEY = process.env.REACT_APP_LICENSE_SECRET || 'supermarket-license-secret-key-2026';
 
-// License types configuration
-const LICENSE_TYPES = {
+// Grace period for expired licenses before complete lockout (48 hours)
+const GRACE_PERIOD_MS = 48 * 60 * 60 * 1000;
+
+// Pagination settings
+const ITEMS_PER_PAGE = 5;
+
+/**
+ * License types configuration with enhanced details
+ * Each type includes: label, duration, price, description, color, and features
+ */
+type LicenseTypeKey = 'gratuite' | 'mensuelle' | 'annuelle' | 'vie' | 'trial';
+
+interface LicenseTypeConfig {
+  label: string;
+  days: number;
+  price: number;
+  description: string;
+  color: string;
+  features: string[];
+}
+
+const LICENSE_TYPES: Record<LicenseTypeKey, LicenseTypeConfig> = {
   gratuite: {
     label: 'Licence Gratuite',
     days: 7,
     price: 0,
     description: 'Essai gratuit de 7 jours pour découvrir l\'application',
     color: 'bg-gray-500',
-    features: ['Accès limité aux fonctionnalités', 'Support par email', 'Données limitées']
+    features: ['Accès limité aux fonctionnalités', 'Support par email', 'Données limitées', 'Max 3 utilisateurs']
   },
   mensuelle: {
     label: 'Licence Mensuelle',
     days: 30,
     price: 10000,
-    description: 'Licence mensuelle pour une utilisation professionnelle',
+    description: 'Licence mensuelle pour une utilisation professionnelle et scalable',
     color: 'bg-blue-500',
-    features: ['Toutes les fonctionnalités', 'Support prioritaire', 'Mises à jour incluses']
+    features: ['Toutes les fonctionnalités', 'Support prioritaire', 'Mises à jour incluses', 'Max 10 utilisateurs']
   },
   annuelle: {
     label: 'Licence Annuelle',
     days: 365,
     price: 70000,
-    description: 'Licence annuelle avec économie de 50 000 FCFA',
+    description: 'Licence annuelle avec économie de 50 000 FCFA comparé au mensuel',
     color: 'bg-purple-500',
-    features: ['Toutes les fonctionnalités', 'Support 24/7', 'Formation incluse', 'Mises à jour illimitées']
+    features: ['Toutes les fonctionnalités', 'Support 24/7', 'Formation incluse', 'Mises à jour illimitées', 'Max 20 utilisateurs']
   },
   vie: {
     label: 'Licence à Vie',
     days: 36135, // 99 years
     price: 200000,
-    description: 'Licence permanente (99 ans) pour une tranquillité totale',
+    description: 'Licence permanente (99 ans) pour une tranquillité totale d\'exploitation',
     color: 'bg-amber-500',
-    features: ['Accès illimité à vie', 'Support VIP', 'Toutes les mises à jour', 'Formation personnalisée', 'Assistance sur site']
+    features: ['Accès illimité à vie', 'Support VIP', 'Toutes les mises à jour', 'Formation personnalisée', 'Assistance sur site', 'Utilisateurs illimités']
+  },
+  trial: {
+    label: 'Essai Gratuit',
+    days: 30,
+    price: 0,
+    description: 'Essai gratuit de 30 jours pour les nouveaux utilisateurs avec accès complet',
+    color: 'bg-emerald-500',
+    features: ['Toutes les fonctionnalités', 'Support limité', '30 jours d\'essai complet', 'Max 5 utilisateurs']
   }
 };
 
+/**
+ * Payment information - centralized configuration
+ * In production, these should be loaded from environment variables
+ */
 const PAYMENT_INFO = {
   mobileMoneyNumbers: ['+225 59783511', '+225 48987468'],
-  email: 'christophefolinga@gmail.com',
-  qrCodeData: 'https://payment.example.com/pay?to=supermarket-app'
+  email: process.env.REACT_APP_PAYMENT_EMAIL || 'christophefolinga@gmail.com',
+  qrCodeData: process.env.REACT_APP_PAYMENT_QR || 'https://payment.example.com/pay?to=supermarket-app'
+};
+
+/**
+ * Machine ID generation - Fingerprinting for device identification
+ */
+const getMachineId = (): string => {
+  try {
+    const navigator_info = window.navigator;
+    const screen_info = window.screen;
+    
+    let uid = navigator_info.mimeTypes.length.toString();
+    uid += navigator_info.userAgent.replace(/\D+/g, '');
+    uid += navigator_info.plugins.length;
+    uid += screen_info.height || '';
+    uid += screen_info.width || '';
+    uid += screen_info.pixelDepth || '';
+    uid += screen_info.devicePixelRatio || '';
+    
+    return btoa(uid).slice(0, 32);
+  } catch (error) {
+    console.error('Error generating machine ID:', error);
+    return btoa(Date.now().toString()).slice(0, 32);
+  }
 };
 
 // Machine ID generation (Fingerprinting)
@@ -79,75 +147,84 @@ const getMachineId = (): string => {
 };
 
 // Encryption/Decryption using AES
-const encryptData = (data: string): string => {
-  return CryptoJS.AES.encrypt(data, SECRET_KEY).toString();
-};
+// Crypto functions are imported from @/src/services/license
+// encryptData, decryptData, generateLicenseCode are re-exported above
 
-const decryptData = (encrypted: string): string => {
-  try {
-    const bytes = CryptoJS.AES.decrypt(encrypted, SECRET_KEY);
-    return bytes.toString(CryptoJS.enc.Utf8);
-  } catch {
-    return '';
-  }
-};
+/**
+ * License Countdown Component
+ * Displays remaining time until license expiration with real-time updates
+ */
+interface CountdownState {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  isExpired: boolean;
+  isWarning: boolean;
+  isGrace: boolean;
+}
 
-// Generate license code format XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
-const generateLicenseCode = (): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const parts: string[] = [];
-  for (let p = 0; p < 5; p++) {
-    let part = '';
-    for (let i = 0; i < 5; i++) {
-      part += chars[Math.floor(Math.random() * chars.length)];
-    }
-    parts.push(part);
-  }
-  return parts.join('-');
-};
-
-// Countdown component - calculates from stored expiration date (persists even when device is off)
 const LicenseCountdown = ({ expiresAt }: { expiresAt: string }) => {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false, isWarning: false, isGrace: false });
+  const [timeLeft, setTimeLeft] = useState<CountdownState>({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    isExpired: false,
+    isWarning: false,
+    isGrace: false
+  });
 
   useEffect(() => {
     const calculateTime = () => {
-      const now = new Date().getTime();
-      const expiry = new Date(expiresAt).getTime();
-      const diff = expiry - now;
-      
-      // Grace period: 48 hours
-      const gracePeriod = 48 * 60 * 60 * 1000;
+      try {
+        const now = new Date().getTime();
+        const expiry = new Date(expiresAt).getTime();
+        const diff = expiry - now;
 
-      if (diff <= -gracePeriod) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true, isWarning: false, isGrace: false });
-        return;
-      }
+        // License has passed grace period - completely expired
+        if (diff <= -GRACE_PERIOD_MS) {
+          setTimeLeft({
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0,
+            isExpired: true,
+            isWarning: false,
+            isGrace: false
+          });
+          return;
+        }
 
-      if (diff <= 0) {
-        const graceDiff = gracePeriod + diff;
+        // In grace period
+        if (diff <= 0) {
+          const graceDiff = GRACE_PERIOD_MS + diff;
+          setTimeLeft({
+            days: 0,
+            hours: Math.floor(graceDiff / (1000 * 60 * 60)),
+            minutes: Math.floor((graceDiff % (1000 * 60 * 60)) / (1000 * 60)),
+            seconds: Math.floor((graceDiff % (1000 * 60)) / 1000),
+            isExpired: false,
+            isWarning: true,
+            isGrace: true
+          });
+          return;
+        }
+
+        // Normal countdown
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         setTimeLeft({
-          days: 0,
-          hours: Math.floor(graceDiff / (1000 * 60 * 60)),
-          minutes: Math.floor((graceDiff % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((graceDiff % (1000 * 60)) / 1000),
+          days,
+          hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((diff % (1000 * 60)) / 1000),
           isExpired: false,
-          isWarning: true,
-          isGrace: true
+          isWarning: days < 7,
+          isGrace: false
         });
-        return;
+      } catch (error) {
+        console.error('Error calculating countdown:', error);
       }
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      setTimeLeft({
-        days,
-        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((diff % (1000 * 60)) / 1000),
-        isExpired: false,
-        isWarning: days < 7,
-        isGrace: false
-      });
     };
 
     calculateTime();
@@ -158,12 +235,12 @@ const LicenseCountdown = ({ expiresAt }: { expiresAt: string }) => {
   const pad = (n: number) => n.toString().padStart(2, '0');
 
   // Determine colors based on status
-  const bgColor = timeLeft.isExpired 
-    ? 'bg-red-500/20 text-red-600' 
+  const bgColor = timeLeft.isExpired
+    ? 'bg-red-500/20 text-red-600'
     : timeLeft.isGrace
       ? 'bg-amber-500/20 text-amber-600'
-      : timeLeft.isWarning 
-        ? 'bg-red-500/10 text-red-600' 
+      : timeLeft.isWarning
+        ? 'bg-red-500/10 text-red-600'
         : 'bg-primary/10 text-primary';
 
   const textColor = timeLeft.isExpired || timeLeft.isWarning ? 'text-red-600' : timeLeft.isGrace ? 'text-amber-600' : '';
@@ -171,6 +248,7 @@ const LicenseCountdown = ({ expiresAt }: { expiresAt: string }) => {
   if (timeLeft.isExpired) {
     return (
       <div className="flex items-center gap-2 font-mono text-lg text-red-600">
+        <AlertCircle className="w-5 h-5" />
         <span className="bg-red-500/20 px-3 py-1 rounded font-bold">LICENCE EXPIRÉE</span>
       </div>
     );
@@ -178,7 +256,12 @@ const LicenseCountdown = ({ expiresAt }: { expiresAt: string }) => {
 
   return (
     <div className={`flex items-center gap-1 font-mono text-lg ${textColor}`}>
-      {timeLeft.isGrace && <span className="text-xs font-bold uppercase mr-2">Délai de grâce:</span>}
+      {timeLeft.isGrace && (
+        <span className="text-xs font-bold uppercase mr-2 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          Délai de grâce:
+        </span>
+      )}
       <span className={`${bgColor} px-2 py-1 rounded font-semibold`}>{timeLeft.days}J</span>
       <span className={textColor}>-</span>
       <span className={`${bgColor} px-2 py-1 rounded`}>{pad(timeLeft.hours)}</span>
